@@ -39,6 +39,25 @@ h2.post-title{font-size:20px;margin-bottom:2px;}
 .postnav{font-size:12px;margin-bottom:18px;}
 .postnav a{color:#111;margin-right:14px;}
 .loading{color:#999;font-size:13px;text-align:center;padding:40px 0;}
+
+/* 視覚カード規格（確定仕様） */
+.bdcard{border:1px solid #ccc;padding:12px 14px;margin:10px 0;}
+.bdhead{font-size:13.5px;margin-bottom:4px;}
+.bdchip{display:inline-block;font-size:10px;padding:1px 7px;margin-left:6px;color:#fff;}
+.bdchip.g{background:#0a7a33;}.bdchip.y{background:#9a6b00;}.bdchip.r{background:#b3261e;}
+.bdstats{font-size:12px;background:#f7f7f7;padding:6px 10px;margin-bottom:8px;}
+.bdrow{display:flex;gap:12px;align-items:flex-start;border-top:1px dashed #ddd;padding:8px 0;}
+.bdimg{width:84px;height:84px;object-fit:cover;border:1px solid #ddd;flex-shrink:0;}
+.bdcopy{font-size:13px;font-weight:600;}
+.bdstat{font-size:11px;color:#555;margin-top:2px;}
+.bdbarrow{display:flex;align-items:center;margin-bottom:6px;}
+.bdbarlabel{width:64px;font-size:12px;text-align:right;padding-right:10px;flex-shrink:0;}
+.bdbar{flex:1;position:relative;height:26px;background:#f4f4f4;display:block;}
+.bdfill{position:absolute;left:0;top:0;bottom:0;background:#111;}
+.bdfill.grey{background:#999;}
+.bdval{position:absolute;left:8px;top:0;line-height:26px;color:#fff;mix-blend-mode:difference;font-size:12px;font-weight:600;}
+.bdbig{font-size:13.5px;margin-top:8px;}
+
 .notice{font-size:11px;color:#999;margin-top:30px;border-top:1px solid #eee;padding-top:10px;}
 </style>
 </head>
@@ -68,6 +87,7 @@ const SB_URL = 'https://mlxndtqftmkwwpfyvbhg.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1seG5kdHFmdG1rd3dwZnl2YmhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5Njc0NTUsImV4cCI6MjA5OTU0MzQ1NX0.R_tMOYbkTKQUTRs-77z56GrD62lqeBy9GThf9NfWFh4';
 const sb = createClient(SB_URL, SB_KEY);
 
+const HIDDEN = new Set(['f6245854-5c5d-413d-adc7-d6fca8ebc036']);
 let ME = localStorage.getItem('adboard_me') || '';
 let MEMBERS = [], POSTS = [], COMMENTS = [];
 
@@ -106,7 +126,7 @@ async function refresh(){
     sb.from('board_posts').select('*').order('created_at',{ascending:false}),
     sb.from('board_comments').select('*').order('created_at',{ascending:true}),
   ]);
-  POSTS = p.data||[]; COMMENTS = c.data||[];
+  POSTS = (p.data||[]).filter(x=>!HIDDEN.has(x.id)); COMMENTS = c.data||[];
   render();
 }
 
