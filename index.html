@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ANNA DIAMOND｜広告ボード</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;border-radius:0;}
+body{font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans",sans-serif;color:#111;background:#fff;line-height:1.85;}
+.wrap{max-width:760px;margin:0 auto;padding:32px 20px 80px;}
+header{border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:baseline;}
+h1{font-size:18px;letter-spacing:1px;}
+.me{font-size:12px;color:#666;}
+.me a{color:#999;font-size:11px;margin-left:8px;}
+h2.post-title{font-size:20px;margin-bottom:2px;}
+.post-meta{font-size:11px;color:#888;margin-bottom:20px;}
+.section{position:relative;border:1px solid #e2e2e2;padding:18px 20px;margin-bottom:14px;}
+.section h3{font-size:14.5px;font-weight:600;margin-bottom:8px;padding-left:9px;border-left:4px solid #111;}
+.section .body{font-size:13.5px;}
+.section .body table{width:100%;border-collapse:collapse;font-size:12.5px;margin:8px 0;}
+.section .body th{background:#111;color:#fff;padding:6px 8px;text-align:left;font-weight:500;}
+.section .body td{border-bottom:1px solid #e5e5e5;padding:6px 8px;}
+.section .body b{font-weight:700;}
+.cbtn{position:absolute;top:12px;right:12px;font-size:11.5px;background:#f4f4f4;border:1px solid #ccc;padding:3px 10px;cursor:pointer;}
+.cbtn.has{background:#111;color:#fff;border-color:#111;}
+.thread{border-top:1px dashed #ccc;margin-top:14px;padding-top:12px;display:none;}
+.thread.open{display:block;}
+.comment{margin-bottom:10px;font-size:12.5px;background:#f8f8f8;padding:8px 12px;}
+.comment .who{font-weight:700;font-size:11.5px;}
+.comment .when{color:#999;font-size:10px;margin-left:6px;}
+.cform{display:flex;gap:8px;margin-top:8px;}
+.cform textarea{flex:1;font-family:inherit;font-size:12.5px;padding:8px;border:1px solid #ccc;resize:vertical;min-height:38px;}
+.cform button{background:#111;color:#fff;border:none;padding:0 16px;font-size:12px;cursor:pointer;}
+#login{max-width:340px;margin:14vh auto;padding:0 20px;}
+#login h1{font-size:16px;margin-bottom:20px;text-align:center;letter-spacing:2px;}
+#login select,#login input{width:100%;font-size:14px;padding:10px;margin-bottom:10px;border:1px solid #ccc;font-family:inherit;}
+#login button{width:100%;background:#111;color:#fff;border:none;padding:12px;font-size:13px;cursor:pointer;letter-spacing:1px;}
+#login .err{color:#b3261e;font-size:12px;text-align:center;margin-top:10px;min-height:18px;}
+.postnav{font-size:12px;margin-bottom:18px;}
+.postnav a{color:#111;margin-right:14px;}
+.loading{color:#999;font-size:13px;text-align:center;padding:40px 0;}
+.notice{font-size:11px;color:#999;margin-top:30px;border-top:1px solid #eee;padding-top:10px;}
+</style>
+</head>
+<body>
+
+<div id="login" style="display:none;">
+  <h1>ANNA DIAMOND<br>広告ボード</h1>
+  <select id="member"></select>
+  <input id="pin" type="password" inputmode="numeric" placeholder="PIN（4桁）">
+  <button onclick="login()">入室する</button>
+  <div class="err" id="loginerr"></div>
+</div>
+
+<div class="wrap" id="app" style="display:none;">
+  <header>
+    <h1>広告ボード</h1>
+    <div class="me"><span id="myname"></span><a href="#" onclick="logout();return false;">退室</a></div>
+  </header>
+  <div class="postnav" id="postnav"></div>
+  <div id="posts" class="loading">読み込み中…</div>
+  <div class="notice">コメントは各ブロック右上の「💬」から。書き込みは即時、全員に見えます。新しい投稿や返信は自動で反映（45秒ごと更新）。</div>
+</div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+const SB_URL = 'https://mlazmnumtyawgqdfkqmw.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1sYXptbnVtdHlhd2dxZGZrcW13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NDM4NDcsImV4cCI6MjA5ODQxOTg0N30.QDpclN-5uNQCPlro29UXG-MZJ_XFpZWKmmofgBr98MA';
+const sb = createClient(SB_URL, SB_KEY);
+
+let ME = localStorage.getItem('adboard_me') || '';
+let MEMBERS = [], POSTS = [], COMMENTS = [];
+
+async function boot(){
+  const { data, error } = await sb.from('board_members').select('name,pin');
+  if (error) {
+    document.getElementById('login').style.display='block';
+    document.getElementById('loginerr').textContent = 'データベース準備中です（テーブル未作成）';
+    return;
+  }
+  MEMBERS = data || [];
+  const sel = document.getElementById('member');
+  sel.innerHTML = MEMBERS.map(m=>`<option>${m.name}</option>`).join('');
+  if (ME && MEMBERS.some(m=>m.name===ME)) { showApp(); } else { document.getElementById('login').style.display='block'; }
+}
+
+window.login = function(){
+  const name = document.getElementById('member').value;
+  const pin = document.getElementById('pin').value.trim();
+  const m = MEMBERS.find(x=>x.name===name && String(x.pin)===pin);
+  if (!m) { document.getElementById('loginerr').textContent='PINが違います'; return; }
+  ME = name; localStorage.setItem('adboard_me', ME); showApp();
+};
+window.logout = function(){ localStorage.removeItem('adboard_me'); location.reload(); };
+
+async function showApp(){
+  document.getElementById('login').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('myname').textContent = ME;
+  await refresh();
+  setInterval(refresh, 45000);
+}
+
+async function refresh(){
+  const [p, c] = await Promise.all([
+    sb.from('board_posts').select('*').order('created_at',{ascending:false}),
+    sb.from('board_comments').select('*').order('created_at',{ascending:true}),
+  ]);
+  POSTS = p.data||[]; COMMENTS = c.data||[];
+  render();
+}
+
+const OPEN = new Set();
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+function render(){
+  const nav = POSTS.map((p,i)=>`<a href="#p${p.id}">${esc(p.week||p.title)}</a>`).join('');
+  document.getElementById('postnav').innerHTML = POSTS.length>1 ? '過去の投稿: '+nav : '';
+  const root = document.getElementById('posts');
+  if (!POSTS.length){ root.innerHTML = '<div class="loading">投稿はまだありません</div>'; return; }
+  root.className='';
+  root.innerHTML = POSTS.map(p=>{
+    const secs = (p.sections||[]).map(s=>{
+      const th = COMMENTS.filter(c=>c.post_id===p.id && c.section_id===s.id);
+      const open = OPEN.has(p.id+s.id);
+      return `<div class="section" id="sec-${p.id}-${s.id}">
+        <button class="cbtn ${th.length?'has':''}" onclick="toggle('${p.id}','${s.id}')">💬 ${th.length||'コメント'}</button>
+        <h3>${esc(s.heading)}</h3>
+        <div class="body">${s.html}</div>
+        <div class="thread ${open?'open':''}">
+          ${th.map(c=>`<div class="comment"><span class="who">${esc(c.author)}</span><span class="when">${new Date(c.created_at).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span><br>${esc(c.body)}</div>`).join('')}
+          <div class="cform"><textarea id="in-${p.id}-${s.id}" placeholder="コメントを書く（${esc(ME)}として投稿）"></textarea>
+          <button onclick="send('${p.id}','${s.id}')">送信</button></div>
+        </div></div>`;
+    }).join('');
+    return `<div id="p${p.id}"><h2 class="post-title">${esc(p.title)}</h2>
+      <div class="post-meta">${esc(p.week||'')}｜${new Date(p.created_at).toLocaleDateString('ja-JP')}</div>${secs}</div>`;
+  }).join('<hr style="border:none;border-top:2px solid #111;margin:36px 0;">');
+}
+
+window.toggle = function(pid, sid){
+  const k = pid+sid;
+  OPEN.has(k) ? OPEN.delete(k) : OPEN.add(k);
+  render();
+};
+
+window.send = async function(pid, sid){
+  const el = document.getElementById(`in-${pid}-${sid}`);
+  const body = el.value.trim();
+  if (!body) return;
+  el.value=''; OPEN.add(pid+sid);
+  await sb.from('board_comments').insert({post_id: pid, section_id: sid, author: ME, body});
+  await refresh();
+};
+
+boot();
+</script>
+</body>
+</html>
