@@ -11,12 +11,10 @@ import json, re, sys, requests
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent
-SB_URL = 'https://mlazmnumtyawgqdfkqmw.supabase.co'
+SB_URL = 'https://mlxndtqftmkwwpfyvbhg.supabase.co'
 
 def anon_key():
-    html = (BASE.parent / 'ai-mori-office' / 'index.html').read_text()
-    m = re.search(r'(eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)', html)
-    return m.group(1)
+    return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1seG5kdHFmdG1rd3dwZnl2YmhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5Njc0NTUsImV4cCI6MjA5OTU0MzQ1NX0.R_tMOYbkTKQUTRs-77z56GrD62lqeBy9GThf9NfWFh4'
 
 def post(payload):
     key = anon_key()
