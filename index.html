@@ -183,7 +183,8 @@ async function refresh(){
     sb.from('board_posts').select('*').order('created_at',{ascending:false}),
     sb.from('board_comments').select('*').order('created_at',{ascending:true}),
   ]);
-  POSTS=(p.data||[]).filter(x=>!HIDDEN.has(x.id)); COMMENTS=c.data||[];
+  POSTS=(p.data||[]).filter(x=>!HIDDEN.has(x.id));
+  COMMENTS=(c.data||[]).filter(x=>x.author!=='検証');
   render();
 }
 
