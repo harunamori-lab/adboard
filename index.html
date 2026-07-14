@@ -7,7 +7,7 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;border-radius:0;}
 body{font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans",sans-serif;color:#111;background:#fff;line-height:1.85;}
-.wrap{max-width:760px;margin:0 auto;padding:32px 20px 80px;}
+.wrap{max-width:760px;margin:0 auto;padding:32px 20px 100px;}
 header{border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:baseline;}
 h1{font-size:18px;letter-spacing:1px;}
 .me{font-size:12px;color:#666;}
@@ -25,12 +25,32 @@ h2.post-title{font-size:20px;margin-bottom:2px;}
 .cbtn.has{background:#111;color:#fff;border-color:#111;}
 .thread{border-top:1px dashed #ccc;margin-top:14px;padding-top:12px;display:none;}
 .thread.open{display:block;}
-.comment{margin-bottom:10px;font-size:12.5px;background:#f8f8f8;padding:8px 12px;}
+.comment{margin-bottom:10px;font-size:12.5px;background:#f8f8f8;padding:9px 12px;position:relative;}
+.comment.resolved{opacity:.55;}
 .comment .who{font-weight:700;font-size:11.5px;}
 .comment .when{color:#999;font-size:10px;margin-left:6px;}
-.cform{display:flex;gap:8px;margin-top:8px;}
-.cform textarea{flex:1;font-family:inherit;font-size:12.5px;padding:8px;border:1px solid #ccc;resize:vertical;min-height:38px;}
-.cform button{background:#111;color:#fff;border:none;padding:0 16px;font-size:12px;cursor:pointer;}
+.comment .ctext{margin-top:2px;white-space:pre-wrap;}
+.comment.resolved .ctext{text-decoration:line-through;}
+.cimgs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.cimgs img{width:88px;height:88px;object-fit:cover;border:1px solid #ddd;cursor:zoom-in;}
+.cactions{margin-top:6px;font-size:11px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+.cactions a{color:#888;cursor:pointer;text-decoration:none;}
+.cactions a:hover{color:#111;}
+.cactions a.on{color:#0a7a33;font-weight:700;}
+.react{cursor:pointer;user-select:none;border:1px solid #ddd;padding:1px 7px;font-size:11px;background:#fff;}
+.react.on{background:#111;color:#fff;border-color:#111;}
+.resolvedtag{display:inline-block;font-size:10px;background:#0a7a33;color:#fff;padding:0 7px;margin-left:6px;}
+.cform{margin-top:10px;}
+.cform.drag{outline:2px dashed #111;outline-offset:3px;}
+.cform textarea{width:100%;font-family:inherit;font-size:12.5px;padding:9px;border:1px solid #ccc;resize:vertical;min-height:44px;}
+.previews{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;}
+.pv{position:relative;}
+.pv img{width:70px;height:70px;object-fit:cover;border:1px solid #ccc;}
+.pv .x{position:absolute;top:-7px;right:-7px;width:20px;height:20px;background:#111;color:#fff;font-size:12px;line-height:20px;text-align:center;cursor:pointer;border-radius:50%;}
+.cformbtns{display:flex;gap:8px;align-items:center;margin-top:6px;}
+.cformbtns .attach{font-size:12px;border:1px solid #ccc;background:#fff;padding:6px 12px;cursor:pointer;}
+.cformbtns .send{background:#111;color:#fff;border:none;padding:7px 18px;font-size:12px;cursor:pointer;}
+.cformhint{font-size:10px;color:#aaa;margin-top:3px;}
 #login{max-width:340px;margin:14vh auto;padding:0 20px;}
 #login h1{font-size:16px;margin-bottom:20px;text-align:center;letter-spacing:2px;}
 #login select,#login input{width:100%;font-size:14px;padding:10px;margin-bottom:10px;border:1px solid #ccc;font-family:inherit;}
@@ -39,7 +59,6 @@ h2.post-title{font-size:20px;margin-bottom:2px;}
 .postnav{font-size:12px;margin-bottom:18px;}
 .postnav a{color:#111;margin-right:14px;}
 .loading{color:#999;font-size:13px;text-align:center;padding:40px 0;}
-
 /* 視覚カード規格（確定仕様） */
 .bdcard{border:1px solid #ccc;padding:12px 14px;margin:10px 0;}
 .bdhead{font-size:13.5px;margin-bottom:4px;}
@@ -57,8 +76,9 @@ h2.post-title{font-size:20px;margin-bottom:2px;}
 .bdfill.grey{background:#999;}
 .bdval{position:absolute;left:8px;top:0;line-height:26px;color:#fff;mix-blend-mode:difference;font-size:12px;font-weight:600;}
 .bdbig{font-size:13.5px;margin-top:8px;}
-
 .notice{font-size:11px;color:#999;margin-top:30px;border-top:1px solid #eee;padding-top:10px;}
+#lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:100;align-items:center;justify-content:center;cursor:zoom-out;}
+#lightbox img{max-width:94vw;max-height:94vh;object-fit:contain;}
 </style>
 </head>
 <body>
@@ -78,8 +98,10 @@ h2.post-title{font-size:20px;margin-bottom:2px;}
   </header>
   <div class="postnav" id="postnav"></div>
   <div id="posts" class="loading">読み込み中…</div>
-  <div class="notice">コメントは各ブロック右上の「💬」から。書き込みは即時、全員に見えます。新しい投稿や返信は自動で反映（45秒ごと更新）。</div>
+  <div class="notice">コメント欄では画像も送れます（複数OK・ドラッグ＆ドロップ・貼り付け対応）。コメントは「解決」でたためます。👍で軽く反応も。自動更新は60秒ごと。</div>
 </div>
+
+<div id="lightbox" onclick="this.style.display='none'"><img id="lightimg" src="" alt=""></div>
 
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
@@ -90,67 +112,137 @@ const sb = createClient(SB_URL, SB_KEY);
 const HIDDEN = new Set(['f6245854-5c5d-413d-adc7-d6fca8ebc036']);
 let ME = localStorage.getItem('adboard_me') || '';
 let MEMBERS = [], POSTS = [], COMMENTS = [];
+const OPEN = new Set();        // 開いているスレッド
+const PENDING = {};            // key -> 送信前の画像[dataURL]
+const DRAFT = {};              // key -> 書きかけテキスト
+let ACTIVE = null;             // フォーカス中のkey（自動更新を邪魔しない用）
+const REACTS = ['👍','❤️','🎯'];
+
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+const K = (pid,sid)=>pid+'|'+sid;
+
+// コメント本文のエンコード/デコード（画像・解決・反応を既存カラムに埋め込む）
+function parseBody(raw){
+  try{ const o=JSON.parse(raw); if(o && typeof o==='object' && ('t' in o || 'imgs' in o))
+    return {t:o.t||'', imgs:o.imgs||[], resolved:!!o.resolved, reactions:o.reactions||{}}; }
+  catch(e){}
+  return {t:raw||'', imgs:[], resolved:false, reactions:{}};
+}
+function packBody(o){ return JSON.stringify({t:o.t||'', imgs:o.imgs||[], resolved:!!o.resolved, reactions:o.reactions||{}}); }
+
+// 画像を縮小＆圧縮してdataURLに（重くしない）
+function resizeImage(file){
+  return new Promise((res,rej)=>{
+    const img=new Image();
+    img.onload=()=>{
+      const max=1200; let w=img.width,h=img.height;
+      if(w>max||h>max){ const r=Math.min(max/w,max/h); w=Math.round(w*r); h=Math.round(h*r); }
+      const c=document.createElement('canvas'); c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      res(c.toDataURL('image/jpeg',0.78));
+    };
+    img.onerror=rej;
+    const fr=new FileReader(); fr.onload=()=>img.src=fr.result; fr.onerror=rej; fr.readAsDataURL(file);
+  });
+}
+async function addFiles(key, files){
+  for(const f of files){
+    if(!f.type || !f.type.startsWith('image/')) continue;
+    if((PENDING[key]||[]).length>=6){ alert('画像は1コメント6枚までです'); break; }
+    try{ const d=await resizeImage(f); (PENDING[key]=PENDING[key]||[]).push(d); }catch(e){}
+  }
+  render();
+}
 
 async function boot(){
   const { data, error } = await sb.from('board_members').select('name,pin');
-  if (error) {
-    document.getElementById('login').style.display='block';
-    document.getElementById('loginerr').textContent = 'データベース準備中です（テーブル未作成）';
-    return;
-  }
-  MEMBERS = data || [];
-  const sel = document.getElementById('member');
-  sel.innerHTML = MEMBERS.map(m=>`<option>${m.name}</option>`).join('');
-  if (ME && MEMBERS.some(m=>m.name===ME)) { showApp(); } else { document.getElementById('login').style.display='block'; }
+  if (error){ document.getElementById('login').style.display='block';
+    document.getElementById('loginerr').textContent='データベース準備中です'; return; }
+  MEMBERS = data||[];
+  document.getElementById('member').innerHTML = MEMBERS.map(m=>`<option>${m.name}</option>`).join('');
+  if (ME && MEMBERS.some(m=>m.name===ME)) showApp();
+  else document.getElementById('login').style.display='block';
 }
-
-window.login = function(){
-  const name = document.getElementById('member').value;
-  const pin = document.getElementById('pin').value.trim();
-  const m = MEMBERS.find(x=>x.name===name && String(x.pin)===pin);
-  if (!m) { document.getElementById('loginerr').textContent='PINが違います'; return; }
-  ME = name; localStorage.setItem('adboard_me', ME); showApp();
+window.login=function(){
+  const name=document.getElementById('member').value, pin=document.getElementById('pin').value.trim();
+  const m=MEMBERS.find(x=>x.name===name && String(x.pin)===pin);
+  if(!m){ document.getElementById('loginerr').textContent='PINが違います'; return; }
+  ME=name; localStorage.setItem('adboard_me',ME); showApp();
 };
-window.logout = function(){ localStorage.removeItem('adboard_me'); location.reload(); };
+window.logout=function(){ localStorage.removeItem('adboard_me'); location.reload(); };
 
 async function showApp(){
   document.getElementById('login').style.display='none';
   document.getElementById('app').style.display='block';
-  document.getElementById('myname').textContent = ME;
+  document.getElementById('myname').textContent=ME;
   await refresh();
-  setInterval(refresh, 45000);
+  setInterval(()=>{ if(document.visibilityState==='visible' && !ACTIVE) refresh(); }, 60000);
 }
-
 async function refresh(){
-  const [p, c] = await Promise.all([
+  const [p,c]=await Promise.all([
     sb.from('board_posts').select('*').order('created_at',{ascending:false}),
     sb.from('board_comments').select('*').order('created_at',{ascending:true}),
   ]);
-  POSTS = (p.data||[]).filter(x=>!HIDDEN.has(x.id)); COMMENTS = c.data||[];
+  POSTS=(p.data||[]).filter(x=>!HIDDEN.has(x.id)); COMMENTS=c.data||[];
   render();
 }
 
-const OPEN = new Set();
-function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+function commentHtml(c){
+  const b=parseBody(c.body);
+  const when=new Date(c.created_at).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  const imgs=b.imgs.map(src=>`<img src="${src}" onclick="lightbox('${c.id}',this)">`).join('');
+  const reacts=REACTS.map(e=>{ const list=b.reactions[e]||[]; const on=list.includes(ME);
+    return `<span class="react ${on?'on':''}" onclick="react('${c.id}','${e}')">${e}${list.length||''}</span>`; }).join('');
+  const mine=c.author===ME;
+  return `<div class="comment ${b.resolved?'resolved':''}" id="c-${c.id}">
+    <span class="who">${esc(c.author)}</span><span class="when">${when}</span>
+    ${b.resolved?'<span class="resolvedtag">解決済み</span>':''}
+    <div class="ctext">${esc(b.t)}</div>
+    ${imgs?`<div class="cimgs">${imgs}</div>`:''}
+    <div class="cactions">${reacts}
+      <a onclick="toggleResolve('${c.id}')">${b.resolved?'解決を取り消す':'解決にする'}</a>
+      ${mine?`<a onclick="delComment('${c.id}')">削除</a>`:''}</div></div>`;
+}
+
+function formHtml(pid,sid){
+  const key=K(pid,sid);
+  const pv=(PENDING[key]||[]).map((src,i)=>`<div class="pv"><img src="${src}"><span class="x" onclick="rmImg('${key}',${i})">×</span></div>`).join('');
+  return `<div class="cform" id="form-${key}"
+      ondragover="event.preventDefault();this.classList.add('drag')"
+      ondragleave="this.classList.remove('drag')"
+      ondrop="event.preventDefault();this.classList.remove('drag');window.dropFiles('${key}',event)">
+    <textarea id="in-${key}" placeholder="コメントを書く（${esc(ME)}として投稿）"
+      onfocus="window.setActive('${key}')" onblur="window.clearActive()"
+      oninput="window.draft('${key}',this.value)">${esc(DRAFT[key]||'')}</textarea>
+    ${pv?`<div class="previews">${pv}</div>`:''}
+    <div class="cformbtns">
+      <label class="attach">画像を追加
+        <input type="file" accept="image/*" multiple style="display:none"
+          onchange="window.pickFiles('${key}',this.files);this.value=''"></label>
+      <button class="send" onclick="send('${pid}','${sid}')">送信</button>
+    </div>
+    <div class="cformhint">複数選択OK・ドラッグ＆ドロップOK・スクショを貼り付け（Cmd+V）もOK</div>
+  </div>`;
+}
 
 function render(){
-  const nav = POSTS.map((p,i)=>`<a href="#p${p.id}">${esc(p.week||p.title)}</a>`).join('');
+  const nav=POSTS.map(p=>`<a href="#p${p.id}">${esc(p.week||p.title)}</a>`).join('');
   document.getElementById('postnav').innerHTML = POSTS.length>1 ? '過去の投稿: '+nav : '';
-  const root = document.getElementById('posts');
-  if (!POSTS.length){ root.innerHTML = '<div class="loading">投稿はまだありません</div>'; return; }
+  const root=document.getElementById('posts');
+  if(!POSTS.length){ root.innerHTML='<div class="loading">投稿はまだありません</div>'; return; }
   root.className='';
-  root.innerHTML = POSTS.map(p=>{
-    const secs = (p.sections||[]).map(s=>{
-      const th = COMMENTS.filter(c=>c.post_id===p.id && c.section_id===s.id);
-      const open = OPEN.has(p.id+s.id);
-      return `<div class="section" id="sec-${p.id}-${s.id}">
-        <button class="cbtn ${th.length?'has':''}" onclick="toggle('${p.id}','${s.id}')">💬 ${th.length||'コメント'}</button>
+  root.innerHTML=POSTS.map(p=>{
+    const secs=(p.sections||[]).map(s=>{
+      const th=COMMENTS.filter(c=>c.post_id===p.id && c.section_id===s.id);
+      const unresolved=th.filter(c=>!parseBody(c.body).resolved).length;
+      const open=OPEN.has(K(p.id,s.id));
+      return `<div class="section">
+        <button class="cbtn ${th.length?'has':''}" onclick="toggle('${p.id}','${s.id}')">💬 ${th.length? (unresolved?unresolved+'件':'解決済') :'コメント'}</button>
         <h3>${esc(s.heading)}</h3>
         <div class="body">${s.html}</div>
         <div class="thread ${open?'open':''}">
-          ${th.map(c=>`<div class="comment"><span class="who">${esc(c.author)}</span><span class="when">${new Date(c.created_at).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span><br>${esc(c.body)}</div>`).join('')}
-          <div class="cform"><textarea id="in-${p.id}-${s.id}" placeholder="コメントを書く（${esc(ME)}として投稿）"></textarea>
-          <button onclick="send('${p.id}','${s.id}')">送信</button></div>
+          ${th.map(commentHtml).join('')}
+          ${formHtml(p.id,s.id)}
         </div></div>`;
     }).join('');
     return `<div id="p${p.id}"><h2 class="post-title">${esc(p.title)}</h2>
@@ -158,20 +250,54 @@ function render(){
   }).join('<hr style="border:none;border-top:2px solid #111;margin:36px 0;">');
 }
 
-window.toggle = function(pid, sid){
-  const k = pid+sid;
-  OPEN.has(k) ? OPEN.delete(k) : OPEN.add(k);
-  render();
-};
+window.toggle=(pid,sid)=>{ const k=K(pid,sid); OPEN.has(k)?OPEN.delete(k):OPEN.add(k); render(); };
+window.setActive=(k)=>{ ACTIVE=k; };
+window.clearActive=()=>{ ACTIVE=null; };
+window.draft=(k,v)=>{ DRAFT[k]=v; };
+window.pickFiles=(k,files)=>addFiles(k,files);
+window.dropFiles=(k,ev)=>{ if(ev.dataTransfer&&ev.dataTransfer.files) addFiles(k,ev.dataTransfer.files); };
+window.rmImg=(k,i)=>{ PENDING[k].splice(i,1); render(); };
+window.lightbox=(cid,el)=>{ document.getElementById('lightimg').src=el.src; document.getElementById('lightbox').style.display='flex'; };
 
-window.send = async function(pid, sid){
-  const el = document.getElementById(`in-${pid}-${sid}`);
-  const body = el.value.trim();
-  if (!body) return;
-  el.value=''; OPEN.add(pid+sid);
-  await sb.from('board_comments').insert({post_id: pid, section_id: sid, author: ME, body});
+window.send=async function(pid,sid){
+  const key=K(pid,sid);
+  const text=(DRAFT[key]||'').trim();
+  const imgs=PENDING[key]||[];
+  if(!text && !imgs.length) return;
+  OPEN.add(key);
+  const body=packBody({t:text, imgs, resolved:false, reactions:{}});
+  DRAFT[key]=''; PENDING[key]=[]; ACTIVE=null;
+  const {error}=await sb.from('board_comments').insert({post_id:pid, section_id:sid, author:ME, body});
+  if(error){ alert('送信に失敗しました（画像が大きすぎる可能性）'); }
   await refresh();
 };
+
+async function updateBody(cid, mutate){
+  const c=COMMENTS.find(x=>x.id===cid); if(!c) return;
+  const b=parseBody(c.body); mutate(b);
+  const {error}=await sb.from('board_comments').update({body:packBody(b)}).eq('id',cid);
+  if(error){ alert('この操作にはデータベースの追加設定が必要です（解決・反応・削除）'); return; }
+  await refresh();
+}
+window.toggleResolve=(cid)=>updateBody(cid,b=>{ b.resolved=!b.resolved; });
+window.react=(cid,emoji)=>updateBody(cid,b=>{
+  const list=b.reactions[emoji]||[]; const i=list.indexOf(ME);
+  if(i>=0) list.splice(i,1); else list.push(ME);
+  if(list.length) b.reactions[emoji]=list; else delete b.reactions[emoji];
+});
+window.delComment=async(cid)=>{
+  if(!confirm('このコメントを削除しますか？')) return;
+  const {error}=await sb.from('board_comments').delete().eq('id',cid);
+  if(error){ alert('削除にはデータベースの追加設定が必要です'); return; }
+  await refresh();
+};
+
+// スクショ貼り付け（フォーカス中のコメント欄へ）
+document.addEventListener('paste',(e)=>{
+  if(!ACTIVE || !e.clipboardData) return;
+  const files=[...e.clipboardData.items].filter(i=>i.type.startsWith('image/')).map(i=>i.getAsFile()).filter(Boolean);
+  if(files.length){ e.preventDefault(); addFiles(ACTIVE, files); }
+});
 
 boot();
 </script>
